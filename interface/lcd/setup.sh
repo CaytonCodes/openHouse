@@ -68,7 +68,7 @@ delete_line () {
   sed -i '/'"$1"'/d' "$2" 2> /dev/null
 }
 
-# takes path to a file as first argument ($1) and creates a global 
+# takes path to a file as first argument ($1) and creates a global
 # $list array with non-empty and non-commented out lines as elements
 line_to_list () {
   if [[ -z "$1" || ! -f "$1" ]]; then return 1; fi
@@ -164,8 +164,8 @@ fi
 
 message "Enabling I2C on boot." 'INFO'; i2c_boot_config
 
-echo "#################################################################"
-echo "# All finished! Press any key to REBOOT now or Ctrl+c to abort. #"
-echo "#################################################################"
+# echo "#################################################################"
+# echo "# All finished! Press any key to REBOOT now or Ctrl+c to abort. #"
+# echo "#################################################################"
 
-read -n1 -s; reboot now
+# read -n1 -s; reboot now
