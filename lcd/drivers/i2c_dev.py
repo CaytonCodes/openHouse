@@ -140,7 +140,7 @@ class Lcd:
         for char in string:
             self.lcd_write(ord(char), Rs)
 
-    # put extended string function. Extended string may contain placeholder like {0xFF} for 
+    # put extended string function. Extended string may contain placeholder like {0xFF} for
     # displaying the particular symbol from the symbol table
     def lcd_display_extended_string(self, string, line):
         if line == 1:
@@ -251,9 +251,9 @@ class CustomCharacters:
                             "10001",
                             "11111"]
 
-    # load custom character data to CG RAM for later use in extended string. Data for  
-    # characters is hold in file custom_characters.txt in the same folder as i2c_dev.py 
-    # file. These custom characters can be used in printing of extended string with a 
+    # load custom character data to CG RAM for later use in extended string. Data for
+    # characters is hold in file custom_characters.txt in the same folder as i2c_dev.py
+    # file. These custom characters can be used in printing of extended string with a
     # placeholder with desired character codes: 1st - {0x00}, 2nd - {0x01}, 3rd - {0x02},
     # 4th - {0x03}, 5th - {0x04}, 6th - {0x05}, 7th - {0x06} and 8th - {0x07}.
     def load_custom_characters_data(self):

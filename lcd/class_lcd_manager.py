@@ -2,20 +2,20 @@
 # -*- coding: utf-8 -*-
 
 # Import necessary libraries for communication and display use
-import drivers
+from .drivers import i2c_dev
 from time import sleep
 
 
 class LcdManager:
-		def __init__(self, columns=16, rows=4):
-				if columns > 16:
-						columns = 16
+		def __init__(self, columns=20, rows=4):
+				if columns > 20:
+						columns = 20
 				if rows > 4:
 						rows = 4
 				self.columns = columns
 				self.rows = rows
 				# Load the driver and set it to "display"
-				self.display = drivers.Lcd()
+				self.display = i2c_dev.Lcd()
 
 		def check_inputs(self, num_line, num_cols=None):
 				num_line_out = num_line if num_line <= self.rows else self.rows
