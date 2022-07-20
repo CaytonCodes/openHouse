@@ -43,6 +43,7 @@ class LcdManager:
 						self.display.lcd_display_string(offset_string + text, num_line)
 
 		def stats_list(self, stats_list, multi_col = False):
+			# Stats list is a list of tuples with the following format: (stat_name, stat_value)
 				if multi_col:
 					text_col_count = self.settings['text_cols']
 					text_col_width = self.settings['columns'] // text_col_count
