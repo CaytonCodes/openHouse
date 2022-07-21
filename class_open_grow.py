@@ -1,5 +1,6 @@
+import pytz
+from datetime import datetime, timezone
 import yaml
-import interface.lcd.class_lcd_manager as lcd_manager
 import interface.class_interface as interface
 
 class OpenGrow:
@@ -38,29 +39,23 @@ class OpenGrow:
     found = default if found is None else found
     return found
 
-  def prep_display(self):
-    if self.get_config(['INTERFACE', 'LCD']):
-      args = {
-        'columns': self.get_config(['INTERFACE', 'LCD', 'LCDCOLS']),
-        'rows': self.get_config(['INTERFACE', 'LCD', 'LCDROWS']),
-        'text_cols': self.get_config(['INTERFACE', 'LCD', 'LCDTEXTCOLS']),
-      }
-      self.display = lcd_manager.LcdManager(args)
-
   def prep_interface(self):
-    # self.prep_display()
     self.interface = interface.InterfaceManager(self.get_config(['INTERFACE']))
 
   def stats_screen(self):
-    stats_list = self.get_config(['INTERFACE', 'LCD', 'STATSCREEN', 'STATS'], ['TIME'])
+    stats_list = self.get_config(['STATS', 'STATSCREEN'], ['TIME'])
     stats_with_vals = []
     for stat in stats_list:
       stats_with_vals.append([stat, self.get_stat(stat)])
     self.interface.stats_screen(stats_with_vals)
 
+  def get_current_time(self):
+    return datetime.now(timezone.utc).astimezone(pytz.timezone(self.get_config(['GENERAL', 'TIMEZONE'], 'Etc/UTC'))).strftime('%I:%M %p')
+
   def get_stat(self, stat):
-    match stat:
-      case 'TIME':
-        return '5:00 AM'
-      case default:
-        return 'N/A'
+    if stat == 'TIME':
+      return self.get_current_time()
+    elif stat == 'TEMP':
+      return '75.0 F'
+    else:
+      return 'N/A'

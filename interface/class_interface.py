@@ -1,4 +1,4 @@
-import lcd.class_lcd_manager as lcd_manager
+import interface.lcd.class_lcd_manager as lcd_manager
 
 class InterfaceManager:
   def __init__(self, config):
@@ -22,4 +22,4 @@ class InterfaceManager:
     if self.display:
       if clear:
         self.display.clear()
-      self.display.stats_list(stats_list)
+      self.display.stats_list(stats_list, True)

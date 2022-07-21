@@ -1,7 +1,10 @@
+GENERAL:
+  # Use tz name for timezone, see list here: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  TIMEZONE: 'America/Denver'
 INTERFACE:
   LCD:
     LCDCOLS: 20
     LCDROWS: 4
     LCDTEXTCOLS: 2
-  STATSCREEN:
-    STATS: ['TIME', 'TEMP', 'PH', 'EC']
+STATS:
+  STATSCREEN: ['TIME', 'TEMP', 'PH', 'EC']

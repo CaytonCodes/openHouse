@@ -1,12 +1,10 @@
 #! /usr/bin/env python
 
 # Import necessary libraries for communication and display use
-import interface.lcd.class_lcd_manager as lcd_manager
+# import interface.lcd.class_lcd_manager as lcd_manager
 import class_open_grow as house_manager
 from time import sleep
 
-# Load the driver and set it to "display"
-# If you use something from the driver library use the "display." prefix first
 manager = house_manager.OpenGrow()
 
 # Main body of code

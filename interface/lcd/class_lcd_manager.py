@@ -57,11 +57,11 @@ class LcdManager:
 						row = (i // text_col_count) * 2
 						text_col = i % text_col_count
 						col_offset = centering_offset + text_col * text_col_width
-						print(stats_list[i], row, text_col, col_offset)
+						# print(stats_list[i], row, text_col, col_offset)
 						for x in [0, 1]:
 								offset_string = " " * (text_col_width - len(stats_list[i][x]))
 								rows[x] = rows[x] + stats_list[i][x] + offset_string
-								print(rows[x], col_offset - len(stats_list[i][x]))
+								# print(rows[x], col_offset - len(stats_list[i][x]))
 								if text_col == text_col_count - 1:
 									self.long_string(rows[x], row + x + 1)
 									rows[x] = ''
