@@ -12,9 +12,9 @@ class InterfaceManager:
   def prep_display(self):
     if self.config['LCD']:
       args = {
-        'columns': self.config['LCD']['LCDCOLS'],
-        'rows': self.config['LCD']['LCDROWS'],
-        'text_cols': self.config['LCD']['LCDTEXTCOLS'],
+        'columns': self.config['LCD']['COLS'],
+        'rows': self.config['LCD']['ROWS'],
+        'text_cols': self.config['LCD']['TEXT_COLS'],
       }
       self.display = lcd_manager.LcdManager(args)
 

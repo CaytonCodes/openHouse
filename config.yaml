@@ -1,10 +1,26 @@
 GENERAL:
   # Use tz name for timezone, see list here: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
   TIMEZONE: 'America/Denver'
+  12_HOUR_CLOCK: true
 INTERFACE:
   LCD:
-    LCDCOLS: 20
-    LCDROWS: 4
-    LCDTEXTCOLS: 2
+    COLS: 20
+    ROWS: 4
+    TEXT_COLS: 2
 STATS:
-  STATSCREEN: ['TIME', 'TEMP', 'PH', 'EC']
+  STATS_SCREEN: ['TIME', 'WTEMP', 'PH1', 'EC']
+  STATS:
+    TIME:
+      TYPE: 'time'
+    WTEMP:
+      TYPE: 'temp'
+SENSORS:
+  I2C_BUS: 1
+  SENSORS:
+    PH1:
+      TYPE: 'I2C'
+      I2C_ADDRESS: 0x63
+      COMMANDS:
+        READ:
+          COMMAND: 'R'
+          DELAY: 900

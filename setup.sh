@@ -59,8 +59,9 @@ trap "end 'Received a signal to stop.' 1" INT HUP TERM
 
 ### perform the installation
 message 'Installing dependencies...' 'TOP'; # pip install PyYAML
-standard_package 'PyYAML' 'PyYAML is installed.' 'Unable to install PyYAML.'
-standard_package 'pytz' 'pytz is installed.' 'Unable to install pytz.'
+standard_package 'PyYAML' 'Done installing PyYAML.' 'Unable to install PyYAML.'
+standard_package 'pytz' 'Done installing pytz.' 'Unable to install pytz.'
+standard_package 'smbus2' 'Done installing smbus2.' 'Unable to install smbus2.'
 
 echo "#################################################################"
 echo "# All finished! Press any key to REBOOT now or Ctrl+c to abort. #"
