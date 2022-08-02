@@ -15,12 +15,16 @@ STATS:
     WTEMP:
       TYPE: 'temp'
 SENSORS:
-  I2C_BUS: 1
+  I2C_BUS_NUM: 1
   SENSORS:
     PH1:
-      TYPE: 'I2C'
-      I2C_ADDRESS: 0x63
-      COMMANDS:
-        READ:
-          COMMAND: 'R'
-          DELAY: 900
+      PROTOCOL: 'I2C'
+      MODULE: 'atlasSciEZOPH'
+      # PROTOCOL_ARGS:
+      #   I2C_ADDRESS: 0x63
+      # COMMANDS:
+      #   READ:
+      #     CODE: 'R'
+      #     DELAY: 900
+      #     UNIT: 'pH'
+

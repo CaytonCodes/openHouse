@@ -3,10 +3,10 @@ from datetime import datetime, timezone
 import yaml
 import interface.class_interface as interface
 import comms.class_i2c_device as I2CDevice
+from sensors.class_sensor_manager import SensorManager
 
 class OpenGrow:
   def __init__(self):
-    self.sensors = {}
     self.build_config()
     self.prep_components()
 
@@ -46,12 +46,13 @@ class OpenGrow:
     self.interface = interface.InterfaceManager(self.get_config(['INTERFACE']))
 
   def prep_sensors(self):
-    sensorDict = self.get_config(['SENSORS', 'SENSORS'], [])
-    self.i2cBus = self.get_config(['SENSORS', 'I2C_BUS'], 1)
-    for sensor in sensorDict:
-      instance = self.prep_sensor(sensorDict[sensor], sensor)
-      if instance:
-        self.sensors[sensor] = instance
+    sensorDict = self.get_config(['SENSORS'], [])
+    # self.i2cBus = self.get_config(['SENSORS', 'I2C_BUS'], 1)
+    self.sensorManager = SensorManager(sensorDict)
+    # for sensor in sensorDict:
+    #   instance = self.prep_sensor(sensorDict[sensor], sensor)
+    #   if instance:
+    #     self.sensors[sensor] = instance
 
   def prep_sensor(self, sensor, sensorName):
     sensorType = sensor['TYPE']
