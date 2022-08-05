@@ -29,7 +29,7 @@ class SensorManager:
       return SensorDevice(sensorName, sensorSettings)
 
   def get_sensor(self, sensorName):
-    return self.sensors[sensorName]
+    return self.sensors.get(sensorName, None)
 
   def get_sensors(self):
     return self.sensors

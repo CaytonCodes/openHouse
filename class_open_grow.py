@@ -1,8 +1,8 @@
 import pytz
 from datetime import datetime, timezone
+from time import sleep
 import yaml
 import interface.class_interface as interface
-import comms.class_i2c_device as I2CDevice
 from sensors.class_sensor_manager import SensorManager
 
 class OpenGrow:
@@ -24,7 +24,7 @@ class OpenGrow:
       try:
         return yaml.safe_load(stream)
       except yaml.YAMLError as exc:
-        print(exc)
+        self.log(exc, 1, True)
 
   def get_config(self, key = None, default = None):
     if type(key) is list:
@@ -44,28 +44,11 @@ class OpenGrow:
 
   def prep_interface(self):
     self.interface = interface.InterfaceManager(self.get_config(['INTERFACE']))
+    self.log = self.interface.log
 
   def prep_sensors(self):
     sensorDict = self.get_config(['SENSORS'], [])
-    # self.i2cBus = self.get_config(['SENSORS', 'I2C_BUS'], 1)
     self.sensorManager = SensorManager(sensorDict)
-    # for sensor in sensorDict:
-    #   instance = self.prep_sensor(sensorDict[sensor], sensor)
-    #   if instance:
-    #     self.sensors[sensor] = instance
-
-  def prep_sensor(self, sensor, sensorName):
-    sensorType = sensor['TYPE']
-    if sensorType == 'I2C':
-      instance = self.prep_i2c_sensor(sensor, sensorName)
-    else:
-      instance = None
-    return instance
-
-  def prep_i2c_sensor(self, sensor, sensorName):
-    address = sensor['I2C_ADDRESS'] or None
-    instance = I2CDevice.I2CDevice(address, self.i2cBus, sensorName)
-    return instance
 
   def stats_screen(self):
     stats_list = self.get_config(['STATS', 'STATS_SCREEN'], ['TIME'])
@@ -87,3 +70,102 @@ class OpenGrow:
       return '75.0 F'
     else:
       return 'N/A'
+
+  def read_sensor(self, sensorName, returnType = 'unitValue', default = None, responseObject = None):
+    if not responseObject:
+      responseObject = self.sensorManager.parallel_read(sensorName)
+    if responseObject:
+      if returnType == 'unitValue':
+        return responseObject.get_unit_value()
+      elif returnType == 'raw':
+        return responseObject.get_data()
+      elif returnType == 'float' or returnType == 'int':
+        return responseObject.get_data(returnType)
+      elif returnType == 'response':
+        return responseObject
+      else:
+        return responseObject.get_data('str')
+    else:
+      return default
+
+  def check_keyboard(self):
+    response = self.interface.check_keyboard(True, False)
+    if response:
+      keyboardInput = response.get('val', None)
+      return keyboardInput
+    else:
+      return None
+
+  def check_keyboard_enter(self):
+    keyEvent = False
+    response = self.check_keyboard()
+    if response or response == '':
+      keyEvent = True
+    return keyEvent
+
+  def device_chat(self):
+    exitChatString = '----EXITING CHAT MODE----\n'
+    device = None
+    deviceTypeOptions = ['SENSORS', 'DRIVERS']
+
+    self.log('----ENTERING CHAT MODE----\nEnter exit or cntl + C to exit\n', 1, True)
+    deviceType = self.interface.get_input('Which type of device?', deviceTypeOptions)
+    if deviceType == 'exit':
+      self.log(exitChatString, 2, True)
+      return
+    deviceOptions = self.get_config([deviceType, deviceType], [])
+    deviceName = self.interface.get_input('Which device?', deviceOptions)
+    if deviceName == 'exit':
+      self.log(exitChatString, 2, True)
+      return
+    if deviceType == 'SENSORS':
+      device = self.sensorManager.get_sensor(deviceName)
+    elif deviceType == 'DRIVERS':
+      # device = self.driverManager.get_driver(deviceName)
+      self.log('drivers not yet implemented', 1, True)
+    if not device:
+      self.log('Device not found, try again.', 1, True)
+      return self.device_chat()
+    self.log('Prepare to enter chat type. CAL chat accepts commands then shows readings of sensor and only sends command when you press enter.', 2, True)
+    chatType = self.interface.get_input('What is the chat type?', ['GENERAL', 'CAL'])
+    chatPrompt = 'In cal chat, you will see readings and select when to send command.\n' if chatType == 'CAL' else ''
+    chatPrompt += 'Enter a command to send to the device.'
+    self.log('Entering chat mode. Type "exit" to exit.', 2, True)
+    chatting = True
+    while chatting:
+      command = self.interface.get_input(chatPrompt)
+      if command == 'exit':
+        chatting = False
+      else:
+        if chatType == 'CAL':
+          self.log('Reading sensor. Press enter to send command.', 1, True)
+          waitingToSend = True
+          while waitingToSend:
+            sleep(1)
+            reading = self.read_sensor(deviceName, 'unitValue')
+            self.log('Reading: ' + reading, 0, True)
+            if self.check_keyboard_enter():
+              waitingToSend = False
+        self.log('Sending command: ' + command + ' to device: ' + deviceName, 1, True)
+        responseObject = self.sensorManager.sensor_query(deviceName, command)
+        if responseObject:
+          response = self.read_sensor(deviceName, 'response', b'', responseObject)
+          self.log('Device Response: ' + response.get_data('str'), 2, True)
+        else:
+          self.log('Device Response: N/A', 2, True)
+    self.log(exitChatString, 2, True)
+    return
+
+
+  def run(self):
+    try:
+      while True:
+        self.log("Looping", 0, True)
+        # self.log(manager.sensorManager.parallel_read('PH1').get_unit_value())
+        if self.check_keyboard() == 'chat':
+          self.device_chat()
+        sleep(5)
+    except KeyboardInterrupt:
+        # If there is a KeyboardInterrupt (when you press ctrl+c), exit the program and cleanup
+        self.log("Cleaning up!", 1, True)
+        # display.clear()

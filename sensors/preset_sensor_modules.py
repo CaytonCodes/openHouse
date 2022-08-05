@@ -15,14 +15,14 @@ preset_sensor_modules = {
   'atlasSciEZO': {
     'PROTOCOL': 'I2C',
     'PROTOCOL_ARGS': {
-      'STD_DELAY': 1000,
+      'STD_DELAY': 1,
       'BLANK_READING': '-',
       'ERROR_READINGS': [b'0.000', b''],
     },
     'COMMANDS': {
       'READ': {
         'CODE': 'R',
-        'DELAY': 900,
+        'DELAY': 0.9,
       },
     }
   }

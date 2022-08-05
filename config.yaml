@@ -27,4 +27,8 @@ SENSORS:
       #     CODE: 'R'
       #     DELAY: 900
       #     UNIT: 'pH'
+DRIVERS:
+  DRIVERS:
+    UNKNOWN:
+      TYPE: 'unknown'
 

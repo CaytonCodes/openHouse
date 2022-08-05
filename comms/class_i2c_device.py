@@ -9,7 +9,7 @@ from _common_funcs import settings_update, error_builder
 
 DEFAULT_BUS_NUM = 1
 DEFAULT_ADDRESS = 0x27
-DEFAULT_DELAY = 1000
+DEFAULT_DELAY = 1
 DEFAULT_NULL_CHAR = '\x00'
 DEFAULT_ENCODING = 'latin-1'
 DEFAULT_BUFFER_SIZE = 31
@@ -24,24 +24,33 @@ class Response:
   data: bytes = None
   unit: str = None
 
-  def get_data(self, default = b"", type = 'bytes', encoding = DEFAULT_ENCODING):
+  def get_data(self,  type = 'bytes', encoding = DEFAULT_ENCODING, default = b""):
     if hasattr(self, 'data'):
       output =  self.data
-    if self.responseType == 'error':
-      return self.data
     else:
       output = default
+    if self.responseType == 'error':
+      return self.data
     if type == 'str':
-      output = output.decode(encoding)
+      try:
+        output = output.decode(encoding)
+      except:
+        return output
     if type == 'float':
-      output = float(output)
+      try:
+        output = float(output)
+      except:
+        return output
     if type == 'int':
-      output = round(float(output))
+      try:
+        output = round(float(output))
+      except:
+        return output
     return output
 
   def get_unit_value(self, unit = None):
     if unit:
-      self.data.unit = unit
+      self.set_unit(unit)
     if self.responseType == 'error':
       return self.data
     else:
@@ -49,7 +58,7 @@ class Response:
         unit = ' ' + self.data.unit
       else:
         unit = ''
-      return self.get_data(type = 'float') + unit
+      return str(self.get_data(type = 'float')) + unit
 
   def set_unit(self, unit):
     self.data.unit = unit
@@ -140,7 +149,9 @@ class I2CDevice:
       self.write(self.settings['READ_COMMAND']['CODE'])
       return response
 
-  def query(self, cmd: str, delay: int = DEFAULT_DELAY):
+  def query(self, cmd: str, delay = None):
+    if not delay:
+      delay = self.settings.get('STD_DELAY', 1)
     try:
       self.write(cmd)
     except Exception as e:
