@@ -6,6 +6,7 @@ import time
 import struct
 import datetime
 from _common_funcs import settings_update, error_builder
+from comms.class_response import Response
 
 DEFAULT_BUS_NUM = 1
 DEFAULT_ADDRESS = 0x27
@@ -14,55 +15,6 @@ DEFAULT_NULL_CHAR = '\x00'
 DEFAULT_ENCODING = 'latin-1'
 DEFAULT_BUFFER_SIZE = 31
 DEFAULT_BLANK_READING = '-'
-
-class Response:
-  sensorName: str = None
-  sensorAddress: int = None
-  inputCmd: str = None
-  responseType: str = None
-  statusCode: int = None
-  data: bytes = None
-  unit: str = None
-
-  def get_data(self,  type = 'bytes', encoding = DEFAULT_ENCODING, default = b""):
-    if hasattr(self, 'data'):
-      output =  self.data
-    else:
-      output = default
-    if self.responseType == 'error':
-      return self.data
-    if type == 'str':
-      try:
-        output = output.decode(encoding)
-      except:
-        return output
-    if type == 'float':
-      try:
-        output = float(output)
-      except:
-        return output
-    if type == 'int':
-      try:
-        output = round(float(output))
-      except:
-        return output
-    return output
-
-  def get_unit_value(self, unit = None):
-    if unit:
-      self.set_unit(unit)
-    if self.responseType == 'error':
-      return self.data
-    else:
-      if hasattr(self.data, 'unit'):
-        unit = ' ' + self.data.unit
-      else:
-        unit = ''
-      return str(self.get_data(type = 'float')) + unit
-
-  def set_unit(self, unit):
-    self.data.unit = unit
-    return self
 
 class I2CDevice:
   def __init__(self, args, existingFile = None, ):
@@ -100,36 +52,39 @@ class I2CDevice:
     self.address: int = address
     fcntl.ioctl(self.deviceFile, 0x0703, self.address)
 
-  def write(self, cmd: str):
-    self.deviceFile.write((cmd + self.settings['NULL_CHAR']).encode(self.settings['ENCODING']))
+  def write(self, cmd: str, encode = True, addNull = True):
+    if addNull:
+      cmd += self.settings.get('NULL_CHAR', DEFAULT_NULL_CHAR)
+    if encode:
+      cmd = cmd.encode(self.settings.get('ENCODING', DEFAULT_ENCODING))
+    self.deviceFile.write(cmd)
 
   def _handle_response(self, inputCmd: str, dataBack):
-    response = Response()
-    response.sensorName = self.settings['SENSOR_NAME']
-    response.sensorAddress = self.settings['I2C_ADDRESS']
-    response.inputCmd = inputCmd
+    args = {
+      'sensorName': self.settings['SENSOR_NAME'],
+      'sensorAddress': self.settings['I2C_ADDRESS'],
+      'inputCmd': inputCmd,
+    }
     if inputCmd == self.settings['READ_COMMAND']['CODE']:
-      response.unit = self.settings['READ_COMMAND']['UNIT']
+      args['unit'] = self.settings['READ_COMMAND']['UNIT']
+    response = Response(args)
     if dataBack:
-      response.data = dataBack[1:].strip().strip(bytes(self.settings['NULL_CHAR'], self.settings['ENCODING']))
-      response.statusCode = int(dataBack[0])
-      response.responseType = 'data'
-    if response.data in self.settings['ERROR_READINGS']:
+      statusCode = int(dataBack[0])
+      data = dataBack[1:].strip().strip(bytes(self.settings['NULL_CHAR'], self.settings['ENCODING']))
+      response.set_data(data, statusCode, 'data')
+    if data in self.settings['ERROR_READINGS']:
       response = self._error_reading(response)
     return response
 
   def _error_reading(self, response):
-    response.responseType = 'error'
-    response.data = self.settings['BLANK_READING']
+    response.set_data(self.settings['BLANK_READING'], -1, 'error')
     return response
 
   def _handle_error(self, errorMsg = '', e = None, response = None, inputCmd: str = '', dataBack = b""):
-    print(e)
     if not response:
       response = self._handle_response(inputCmd, dataBack)
-    response.statusCode = -1
-    response.responseType = 'error'
-    response.data = b"".join([response.get_data(), errorMsg.encode(self.settings['ENCODING']), e.__str__().encode(self.settings['ENCODING'])])
+    errorData = b"".join([response.get_data(), errorMsg.encode(self.settings['ENCODING']), e.__str__().encode(self.settings['ENCODING'])])
+    response.set_data(errorData, -1, 'error')
     response.error = e
     return response
 
@@ -139,10 +94,11 @@ class I2CDevice:
 
   def parallel_read(self):
     timeNow = datetime.datetime.now()
-    if self.lastReading['time'] and (timeNow - self.lastReading['time']).total_seconds() * 1000 < self.settings['STD_DELAY']:
+    if self.lastReading['time'] and (timeNow - self.lastReading['time']).total_seconds() < self.settings['STD_DELAY']:
       # it's too soon to read again, return last read value
       return self.lastReading['response']
     else:
+      print('new parallel reading for : ' + self.settings['SENSOR_NAME'])
       self.lastReading['time'] = timeNow
       response = self.read(self.settings['READ_COMMAND']['CODE'])
       self.lastReading['response'] = response

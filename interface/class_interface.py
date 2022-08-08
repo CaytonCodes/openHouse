@@ -1,7 +1,6 @@
 from time import sleep
 import interface.lcd.class_lcd_manager as lcd_manager
-# from interface.inputs.class_keyboard_reader import KeyboardReader
-from interface.inputs.class_keyboard_watcher import KeyboardWatcher as KeyboardReader
+from interface.inputs.class_keyboard_watcher import KeyboardWatcher
 
 class InterfaceManager:
   def __init__(self, config):
@@ -11,7 +10,7 @@ class InterfaceManager:
   def prep_components(self):
     if self.config['LCD']:
       self.prep_display()
-    self.keyboard = KeyboardReader()
+    self.keyboard = KeyboardWatcher()
 
   def prep_display(self):
     if self.config['LCD']:
