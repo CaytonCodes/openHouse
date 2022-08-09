@@ -161,10 +161,13 @@ class OpenGrow:
     try:
       while True:
         self.log("Looping", 0, True)
-        # self.log(manager.sensorManager.parallel_read('PH1').get_unit_value())
+        self.interface.display.text('Hello World. I\'m entering a longer text to see what will happen. Keep your fingers crossed.', 1)
+        sleep(4)
+        self.interface.display.clear()
+        # self.log(self.sensorManager.parallel_read('PH1').get_unit_value())
         if self.check_keyboard() == 'chat':
           self.device_chat()
-        sleep(5)
+        # sleep(5)
     except KeyboardInterrupt:
         # If there is a KeyboardInterrupt (when you press ctrl+c), exit the program and cleanup
         self.log("Cleaning up!", 1, True)

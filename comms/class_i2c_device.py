@@ -2,7 +2,7 @@
 
 import io
 import fcntl
-import time
+from time import sleep
 import struct
 import datetime
 from _common_funcs import settings_update, error_builder
@@ -58,6 +58,15 @@ class I2CDevice:
     if encode:
       cmd = cmd.encode(self.settings.get('ENCODING', DEFAULT_ENCODING))
     self.deviceFile.write(cmd)
+
+  def write_bytes(self, data: bytes):
+    print('writing: ' + bin(data))
+    data = bytes.fromhex(data)
+    self.deviceFile.write(data)
+    sleep(0.01)
+
+  def write_back(self):
+    self.deviceFile.write(0x04)
 
   def _handle_response(self, inputCmd: str, dataBack):
     args = {
@@ -117,7 +126,7 @@ class I2CDevice:
       errorMsg = f"Unknown Error writing {cmd} to I2C device at: {self.address}"
       return self._handle_error(errorMsg, inputCmd=cmd)
     else:
-      time.sleep(delay)
+      sleep(delay)
       try:
         readOut = self.read(cmd)
       except Exception as e:

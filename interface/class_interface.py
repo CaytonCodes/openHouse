@@ -8,18 +8,13 @@ class InterfaceManager:
     self.prep_components()
 
   def prep_components(self):
-    if self.config['LCD']:
+    if self.config.get('LCD', None):
       self.prep_display()
     self.keyboard = KeyboardWatcher()
 
   def prep_display(self):
-    if self.config['LCD']:
-      args = {
-        'columns': self.config['LCD']['COLS'],
-        'rows': self.config['LCD']['ROWS'],
-        'text_cols': self.config['LCD']['TEXT_COLS'],
-      }
-      self.display = lcd_manager.LcdManager(args)
+    args = self.config.get('LCD', {})
+    self.display = lcd_manager.LcdManager(args)
 
   def check_keyboard(self, complete = True, log = False):
     '''When complete is true, will return the response only after the breaker is hit. Otherwise will return response with running string. Response: {'val': '', 'complete': False}.'''
