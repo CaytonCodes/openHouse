@@ -6,7 +6,7 @@ INTERFACE:
   LCD:
     COLS: 20
     ROWS: 4
-    TEXT_COLS: 2
+    TEXT_COLS: 3
 STATS:
   STATS_SCREEN: ['TIME', 'WTEMP', 'PH1', 'EC']
   STATS:

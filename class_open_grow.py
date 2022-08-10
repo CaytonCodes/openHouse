@@ -5,6 +5,15 @@ import yaml
 import interface.class_interface as interface
 from sensors.class_sensor_manager import SensorManager
 
+test_stats = {
+  'WTemp': '65.0 F',
+  'pH': '6.00',
+  'EC': '1000 ppm',
+  'RH': '50%',
+  'ATemp': '75.0 F',
+  # 'ReallyLongName': 'This is a really long name to test the wrapping of the log output.',
+}
+
 class OpenGrow:
   def __init__(self):
     self.build_config()
@@ -160,15 +169,22 @@ class OpenGrow:
   def run(self):
     try:
       while True:
-        self.log("Looping", 0, True)
-        self.interface.display.text('Hello World. I\'m entering a longer text to see what will happen. Keep your fingers crossed.', 1)
-        sleep(4)
-        self.interface.display.clear()
-        # self.log(self.sensorManager.parallel_read('PH1').get_unit_value())
+        self.log("Looping", 1, True, True)
+        # self.log('Hello World. I\'m entering a longer text to see what will happen. Keep your fingers crossed.', 4)
+        # self.log('', 3)
+        self.interface.stats_log(test_stats)
+        sleep(5)
+        self.interface.lcd_cycle_message()
+        sleep(5)
+
+        keyboardCheck = self.check_keyboard()
+        if keyboardCheck:
+          if not self.log(None, 2, False):
+            self.log('Keyboard input: ' + keyboardCheck, 1, True, True)
         if self.check_keyboard() == 'chat':
           self.device_chat()
         # sleep(5)
     except KeyboardInterrupt:
         # If there is a KeyboardInterrupt (when you press ctrl+c), exit the program and cleanup
-        self.log("Cleaning up!", 1, True)
-        # display.clear()
+        self.log("Cleaning up!", 1, True, True)
+        self.interface.lcd_clear()

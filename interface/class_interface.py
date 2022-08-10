@@ -59,19 +59,36 @@ class InterfaceManager:
       sleep(0.5)
     return response.get('val', None)
 
-  def log(self, message, delay = 0, forcePrint = False):
+  def log(self, message, delay = 0, forcePrint = False, skipDisplay = False):
+    isComplete = True
     toPrint = True if forcePrint or not self.display else False
-    if self.display:
-      # self.display.log(message)
+    if self.display and not skipDisplay:
+      isComplete = self.display.parallel_log(message)
       # print('display bypass: ', message)
       pass
     if toPrint:
       print(message)
     sleep(delay)
+    return isComplete
 
-
-  def stats_screen(self, stats_list, clear = True):
+  def stats_log(self, stats, print = False):
     if self.display:
-      if clear:
-        self.display.clear()
-      self.display.stats_list(stats_list, True)
+      self.display.stats_log(stats)
+    if print:
+      print(str(stats))
+
+  def lcd_clear(self):
+    if self.display:
+      self.display.clear()
+
+  def lcd_cycle_message(self):
+    if self.display:
+      self.display.cycle_message()
+
+  def alert(self, message):
+    isComplete = True
+    if self.display:
+      isComplete = self.display.parallel_log(message, True)
+    print(message)
+    return isComplete
+
