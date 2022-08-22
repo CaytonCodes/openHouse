@@ -61,6 +61,8 @@ class InterfaceManager:
 
   def log(self, message, delay = 0, forcePrint = False, skipDisplay = False):
     isComplete = True
+    if type(message) != str:
+      message = str(message)
     toPrint = True if forcePrint or not self.display else False
     if self.display and not skipDisplay:
       isComplete = self.display.parallel_log(message)
@@ -80,6 +82,14 @@ class InterfaceManager:
   def lcd_clear(self):
     if self.display:
       self.display.clear()
+
+  def lcd_backlight(self, on = True):
+    if self.display:
+      self.display.backlight(on)
+
+  def lcd_backlight_toggle(self):
+    if self.display:
+      self.display.backlight_toggle()
 
   def lcd_cycle_message(self):
     if self.display:

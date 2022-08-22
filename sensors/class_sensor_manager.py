@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from sensors.class_sensor_device import SensorDevice
-from _common_funcs import settings_update, error_builder
+from _common_funcs import _settings_update, _error_builder
 
 class SensorManager:
   def __init__(self, args):
@@ -9,7 +9,7 @@ class SensorManager:
     self.settings = {
       'I2C_BUS_NUM': None,
     }
-    settings_update(self.settings, args)
+    _settings_update(self.settings, args)
     self.prep_sensors()
 
   def prep_sensors(self):

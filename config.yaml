@@ -6,7 +6,14 @@ INTERFACE:
   LCD:
     COLS: 20
     ROWS: 4
-    TEXT_COLS: 3
+    TEXT_COLS: 2
+    PROTOCOL: 'I2C'
+    PROTOCOL_ARGS: {
+      'I2C_ADDR': 0x27,
+      'I2C_BUS_NUM': 1,
+      'STD_DELAY': 0.01,
+      'ENCODING': 'bytes',
+    }
 STATS:
   STATS_SCREEN: ['TIME', 'WTEMP', 'PH1', 'EC']
   STATS:
@@ -20,13 +27,13 @@ SENSORS:
     PH1:
       PROTOCOL: 'I2C'
       MODULE: 'atlasSciEZOPH'
-      # PROTOCOL_ARGS:
-      #   I2C_ADDRESS: 0x63
-      # COMMANDS:
-      #   READ:
-      #     CODE: 'R'
-      #     DELAY: 900
-      #     UNIT: 'pH'
+    LCD:
+      PROTOCOL: 'I2C'
+      PROTOCOL_ARGS: {
+        'I2C_ADDR': 0x27,
+        'I2C_BUS_NUM': 1,
+        'STD_DELAY': 0.01
+      }
 DRIVERS:
   DRIVERS:
     UNKNOWN:

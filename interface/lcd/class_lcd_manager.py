@@ -1,13 +1,60 @@
 from smbus import SMBus
+from comms.class_i2c_device import I2CDevice as I2CDevice
 from time import sleep
-from _common_funcs import settings_update, error_builder
+from _common_funcs import _settings_update, _error_builder
+
+# commands
+LCD_CLEARDISPLAY = 0x01
+LCD_RETURNHOME = 0x02
+LCD_ENTRYMODESET = 0x04
+LCD_DISPLAYCONTROL = 0x08
+LCD_CURSORSHIFT = 0x10
+LCD_FUNCTIONSET = 0x20
+LCD_SETCGRAMADDR = 0x40
+LCD_SETDDRAMADDR = 0x80
+
+# flags for display entry mode
+LCD_ENTRYRIGHT = 0x00
+LCD_ENTRYLEFT = 0x02
+LCD_ENTRYSHIFTINCREMENT = 0x01
+LCD_ENTRYSHIFTDECREMEN = 0x00
+
+# flags for display on/off control
+LCD_DISPLAYON = 0x04
+LCD_DISPLAYOFF = 0x00
+LCD_CURSORON = 0x02
+LCD_CURSOROFF = 0x00
+LCD_BLINKON = 0x01
+LCD_BLINKOFF = 0x00
+
+# flags for display/cursor shift
+LCD_DISPLAYMOVE = 0x08
+LCD_CURSORMOVE = 0x00
+LCD_MOVERIGHT = 0x04
+LCD_MOVELEFT = 0x00
+
+# flags for function set
+LCD_8BITMODE = 0x10
+LCD_4BITMODE = 0x00
+LCD_2LINE = 0x08
+LCD_1LINE = 0x00
+LCD_5x10DOTS = 0x04
+LCD_5x8DOTS = 0x00
+
+# flags for backlight control
+LCD_BACKLIGHT = 0x08
+LCD_NOBACKLIGHT = 0x00
+
+En = 0b00000100  # Enable bit
+Rw = 0b00000010  # Read/Write bit
+Rs = 0b00000001  # Register select bit
+
 
 ALIGN_FUNC = {
 	'left': 'ljust',
 	'right': 'rjust',
 	'center': 'center'}
-CLEAR_DISPLAY = 0x01
-ENABLE_BIT = 0b00000100
+
 LINES = {
 	1: 0x80,
 	2: 0xC0,
@@ -24,16 +71,26 @@ class LcdManager(object):
 			'COLS': 20,
 			'ROWS': 4,
 			'TEXT_COLS': 1,
-			'ADDRESS': 0x27,
-			'I2C_BUS_NUM': 1,
-			'BACKLIGHT': True
+			'BACKLIGHT': True,
+			'PROTOCOL': 'I2C',
+			'PROTOCOL_ARGS': {
+				'I2C_ADDR': 0x27,
+				'I2C_BUS_NUM': 1,
+				'STD_DELAY': 0.0005,
+				'ENCODING': 'bytes',
+			}
 		}
-		settings_update(self.settings, args)
-		self.address = self.settings['ADDRESS']
-		self.bus = SMBus(self.settings['I2C_BUS_NUM'])
-		self.delay = 0.0005
+		_settings_update(self.settings, args)
+		self.address = 0x27
+
+		# self.bus = SMBus(self.settings['PROTOCOL_ARGS']['I2C_BUS_NUM'])
+
+		self.delay = self.settings['PROTOCOL_ARGS']['STD_DELAY']
 		self.rows = self.settings['ROWS']
-		self.width = self.settings['COLS']
+		self.cols = self.settings['COLS']
+
+		self._setup_comms()
+
 		self.backlight_status = self.settings['BACKLIGHT']
 		self.message = ''
 		self.messageRemainder = ''
@@ -44,14 +101,29 @@ class LcdManager(object):
 		self.write(0x06)
 		self.write(0x0C)
 		self.write(0x28)
-		self.write(CLEAR_DISPLAY)
+		self.write(LCD_CLEARDISPLAY)
 		sleep(self.delay)
 
+	def _setup_comms(self):
+		if self.settings.get('PROTOCOL') == 'I2C':
+			protocolArgs = self.settings.get('PROTOCOL_ARGS', {})
+			protocolArgs['DEVICE_NAME'] = 'LCD'
+			protocolArgs['ENCODING'] = 'bytes'
+			self.comm = I2CDevice(protocolArgs)
+
 	def _write_byte(self, byte):
-		self.bus.write_byte(self.address, byte)
-		self.bus.write_byte(self.address, (byte | ENABLE_BIT))
+		self.comm.write_byte(byte)
+		self.comm.write_byte((byte | En))
 		sleep(self.delay)
-		self.bus.write_byte(self.address,(byte & ~ENABLE_BIT))
+		self.comm.write_byte((byte & ~En))
+		sleep(self.delay)
+
+	def _write_byte_old(self, byte):
+		print('old bytes: ', byte)
+		self.bus.write_byte(self.address, byte)
+		self.bus.write_byte(self.address, (byte | En))
+		sleep(self.delay)
+		self.bus.write_byte(self.address,(byte & ~En))
 		sleep(self.delay)
 
 	def write(self, byte, mode=0):
@@ -65,7 +137,7 @@ class LcdManager(object):
 		excess = None
 		self.write(LINES.get(line, LINES[1]))
 		text, other_lines = self.get_text_line(text, noStrip)
-		text = getattr(text, ALIGN_FUNC.get(align, 'ljust'))(self.width)
+		text = getattr(text, ALIGN_FUNC.get(align, 'ljust'))(self.cols)
 		for char in text:
 			self.write(ord(char), mode=1)
 		if other_lines:
@@ -99,12 +171,16 @@ class LcdManager(object):
 		self.backlight_status = turn_on
 		self.write(0)
 
+	def backlight_toggle(self):
+		self.backlight_status = not self.backlight_status
+		self.write(0)
+
 	def get_text_line(self, text, noStrip = False):
-		line_break = self.width
-		if len(text) > self.width:
-			(line_break) = text[:self.width + 1].rfind(' ')
+		line_break = self.cols
+		if len(text) > self.cols:
+			(line_break) = text[:self.cols + 1].rfind(' ')
 		if line_break < 0:
-			line_break = self.width
+			line_break = self.cols
 		excess = text[line_break:] if noStrip else text[line_break:].strip()
 		return text[:line_break], excess
 
@@ -112,8 +188,8 @@ class LcdManager(object):
 		# Stats is a dictionary of stats to be displayed of format {statName: Value}.
 		if self.holdScreen:
 			return
-		width = self.width
-		textColWidth = width // self.settings['TEXT_COLS']
+		cols = self.cols
+		textColWidth = cols // self.settings['TEXT_COLS']
 		text = ''
 		labels = ''
 		vals = ''
@@ -125,10 +201,10 @@ class LcdManager(object):
 			labels += statName
 			vals += statVal
 			if count % self.settings['TEXT_COLS'] == 0:
-				text += labels.center(width) + vals.center(width)
+				text += labels.center(cols) + vals.center(cols)
 				labels = ''
 				vals = ''
-		text += labels.center(width) + vals.center(width)
+		text += labels.center(cols) + vals.center(cols)
 		return self.parallel_log(text, 1, isStats = True)
 
 	def cycle_message(self):
@@ -145,4 +221,4 @@ class LcdManager(object):
 		return stat
 
 	def clear(self):
-		self.write(CLEAR_DISPLAY)
+		self.write(LCD_CLEARDISPLAY)

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-
-preset_sensor_modules = {
+preset_modules = {
   'atlasSciEZOPH': {
     'MODULE': 'atlasSciEZO',
     'PROTOCOL_ARGS': {
@@ -15,10 +14,12 @@ preset_sensor_modules = {
   'atlasSciEZO': {
     'PROTOCOL': 'I2C',
     'PROTOCOL_ARGS': {
+      'ENCODING': 'latin-1',
+      'NULL_CHAR': '\x00',
       'STD_DELAY': 1,
-      'BLANK_READING': '-',
-      'ERROR_READINGS': [b'0.000', b''],
     },
+    'BLANK_READING': '-',
+    'ERROR_READINGS': [b'0.000', b''],
     'COMMANDS': {
       'READ': {
         'CODE': 'R',

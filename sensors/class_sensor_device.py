@@ -2,8 +2,18 @@
 
 from datetime import datetime
 from comms.class_i2c_device import I2CDevice as I2CDevice
-from _common_funcs import settings_update, error_builder
-from sensors.preset_sensor_modules import preset_sensor_modules
+from _common_funcs import _settings_update, _error_builder
+from comms.class_response import Response
+
+
+DEFAULT_BUS_NUM = 1
+DEFAULT_ADDRESS = 0x27
+DEFAULT_DELAY = 1
+DEFAULT_NULL_CHAR = None
+DEFAULT_ENCODING = 'bytes'
+DEFAULT_BUFFER_SIZE = 31
+DEFAULT_BLANK_READING = '-'
+
 
 class SensorDevice:
   def __init__(self, sensorName = '', args = {}):
@@ -11,16 +21,18 @@ class SensorDevice:
       'PROTOCOL': None,
       'MODULE': None,
       'PROTOCOL_ARGS': {
-        'I2C_ADDRESS': None,
-        'I2C_BUS_NUM': None,
-        'STD_DELAY': None,
+        'I2C_ADDRESS': DEFAULT_ADDRESS,
+        'I2C_BUS_NUM': DEFAULT_BUS_NUM,
+        'STD_DELAY': DEFAULT_DELAY,
+        'ENCODING': DEFAULT_ENCODING,
+        'NULL_CHAR': DEFAULT_NULL_CHAR,
       },
       'COMMANDS': {
         'READ': {
-          'CODE': None,
+          'CODE': 'R',
           'DELAY': None,
-          'LENGTH': None,
-          'UNIT': None,
+          'LENGTH': DEFAULT_BUFFER_SIZE,
+          'UNIT': '',
         },
         'CAL': [{
           'CODE': None,
@@ -29,28 +41,29 @@ class SensorDevice:
         }]
       }
     }
+    _settings_update(self.settings, args)
     self.sensorName = sensorName
-    if args.get('MODULE', None):
-      self._handle_module(args['MODULE'])
-    settings_update(self.settings, args)
-    print(self.settings)
+    self.delay = self.settings.get('PROTOCOL_ARGS', {}).get('STD_DELAY', DEFAULT_DELAY)
+    self.protocol = self.settings.get('PROTOCOL', None)
+    self.address = self.settings.get('PROTOCOL_ARGS', {}).get('I2C_ADDRESS', DEFAULT_ADDRESS)
+    self.lastReadCall = None
+    self.response = self._prep_request()
     self.prep_sensor()
-    self.lastReading = { 'time': None, 'val': None }
 
-  def get_setting(self, setting, default = None):
-    if setting in self.settings:
-      return self.settings.get(setting, default)
-    else:
-      return default
+  # def get_setting(self, setting, default = None):
+  #   if setting in self.settings:
+  #     return self.settings.get(setting, default)
+  #   else:
+  #     return default
 
-  def _handle_module(self, module, settings = None):
-    if not settings:
-      settings = self.settings
-    presets = preset_sensor_modules.get(module, {})
-    if presets.get('MODULE', None):
-      self._handle_module(presets['MODULE'], presets)
-    settings_update(settings, presets)
-    settings['MODULE'] = module
+  # def _handle_module(self, module, settings = None):
+  #   if not settings:
+  #     settings = self.settings
+  #   presets = preset_sensor_modules.get(module, {})
+  #   if presets.get('MODULE', None):
+  #     self._handle_module(presets['MODULE'], presets)
+  #   _settings_update(settings, presets)
+  #   settings['MODULE'] = module
 
   def prep_sensor(self):
     if self.settings.get('PROTOCOL', None) == 'I2C':
@@ -61,33 +74,45 @@ class SensorDevice:
   def _i2c_prep_sensor(self):
     args = self.settings.get('PROTOCOL_ARGS', {})
     args['READ_COMMAND'] = self.settings.get('COMMANDS', {}).get('READ', {})
-    args['SENSOR_NAME'] = self.sensorName
-    self.sensor = I2CDevice(args)
+    args['DEVICE_NAME'] = self.sensorName
+    self.comm = I2CDevice(args)
 
-  def get_reading(self):
-    if self.settings.get('PROTOCOL', None) == 'I2C':
-      return self._i2c_get_reading()
-    else:
-      raise Exception(error_builder('Unknown protocol: ' + self.settings.get('PROTOCOL', None), self.sensorName, None))
+  # def get_reading(self):
+  #   if self.settings.get('PROTOCOL', None) == 'I2C':
+  #     return self._i2c_get_reading()
+  #   else:
+  #     raise Exception(error_builder('Unknown protocol: ' + self.settings.get('PROTOCOL', None), self.sensorName, None))
 
-  def _i2c_get_reading(self):
-    cmd, delay = self._i2c_commands('READ')
-    response = self.sensor.query(cmd, delay)
-    if hasattr(readCommand, 'unit'):
-      response.set_unit(readCommand['unit'])
-    return response
+  # def _i2c_get_reading(self):
+  #   cmd, delay = self._i2c_commands('READ')
+  #   response = self.comm.query(cmd, delay)
+  #   if hasattr(readCommand, 'unit'):
+  #     response.set_unit(readCommand['unit'])
+  #   return response
+
+  def _prep_request(self):
+    args = {
+      'deviceName': self.sensorName,
+      'protocol': self.settings.get('PROTOCOL_ARGS', {})
+    }
+    args['protocol']['type'] = self.settings.get('PROTOCOL', None)
+    return Response(args)
+
+  def _write_command(self, cmd):
+    if cmd == self.settings.get('COMMANDS', {}).get('READ', {}).get('CODE', None):
+
 
   def _i2c_commands(self, commandName):
     if commandName in self.settings.get('COMMANDS', {}):
       cmd = self.settings.get('COMMANDS', {}).get(commandName, {}).get('CODE', '')
       delay = self.settings.get('COMMANDS', {}).get(commandName, {}).get('DELAY', None)
-      delay = delay if delay else self.settings.get('STD_DELAY', None)
+      delay = delay if delay else self.delay
       return cmd, delay
     else:
       raise Exception(error_builder('Unknown command: ' + commandName, self.sensorName, None))
 
   def parallel_read(self):
-    return self.sensor.parallel_read()
+    return self.comm.parallel_read()
 
   def query(self, command, delay = None):
     if self.settings.get('PROTOCOL', None) == 'I2C':
@@ -97,5 +122,7 @@ class SensorDevice:
 
   def _i2c_query(self, command, delay = None):
     if not delay or delay < 0:
-      delay = self.settings.get('STD_DELAY', None)
-    return self.sensor.query(command, delay)
+      delay = self.delay
+    encoding = self.settings.get('PROTOCOL_ARGS', {}).get('ENCODING', DEFAULT_ENCODING)
+    nullChar = self.settings.get('PROTOCOL_ARGS', {}).get('NULL_CHAR', DEFAULT_NULL_CHAR)
+    return self.comm.query(self.address, command, delay, encoding, nullChar)

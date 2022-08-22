@@ -170,12 +170,15 @@ class OpenGrow:
     try:
       while True:
         self.log("Looping", 1, True, True)
-        # self.log('Hello World. I\'m entering a longer text to see what will happen. Keep your fingers crossed.', 4)
+
+        self.log('Hello World. I\'m entering a longer text to see what will happen. Keep your fingers crossed.', 2)
         # self.log('', 3)
-        self.interface.stats_log(test_stats)
-        sleep(5)
+        # self.interface.stats_log(test_stats)
+
+        # self.sensorManager.sensors['LCD'].sensor.write_bytes(0x01)
+        # self.log('help', 2)
         self.interface.lcd_cycle_message()
-        sleep(5)
+        sleep(2)
 
         keyboardCheck = self.check_keyboard()
         if keyboardCheck:
