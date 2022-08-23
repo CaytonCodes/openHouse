@@ -2,6 +2,11 @@ GENERAL:
   # Use tz name for timezone, see list here: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
   TIMEZONE: 'America/Denver'
   12_HOUR_CLOCK: true
+COMMS:
+  I2C: true
+  I2C_ARGS: {
+    'I2C_BUS_NUM': 1,
+  }
 INTERFACE:
   LCD:
     COLS: 20

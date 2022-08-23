@@ -1,5 +1,3 @@
-from smbus import SMBus
-from comms.class_i2c_device import I2CDevice as I2CDevice
 from time import sleep
 from _common_funcs import _settings_update, _error_builder
 
@@ -66,7 +64,7 @@ LCD_NOBACKLIGHT = 0x00
 
 class LcdManager(object):
 
-	def __init__(self, args):
+	def __init__(self, args, comm):
 		self.settings = {
 			'COLS': 20,
 			'ROWS': 4,
@@ -82,14 +80,13 @@ class LcdManager(object):
 		}
 		_settings_update(self.settings, args)
 		self.address = 0x27
-
-		# self.bus = SMBus(self.settings['PROTOCOL_ARGS']['I2C_BUS_NUM'])
+		self.comm = comm
 
 		self.delay = self.settings['PROTOCOL_ARGS']['STD_DELAY']
 		self.rows = self.settings['ROWS']
 		self.cols = self.settings['COLS']
 
-		self._setup_comms()
+		# self._setup_comms()
 
 		self.backlight_status = self.settings['BACKLIGHT']
 		self.message = ''
@@ -104,26 +101,11 @@ class LcdManager(object):
 		self.write(LCD_CLEARDISPLAY)
 		sleep(self.delay)
 
-	def _setup_comms(self):
-		if self.settings.get('PROTOCOL') == 'I2C':
-			protocolArgs = self.settings.get('PROTOCOL_ARGS', {})
-			protocolArgs['DEVICE_NAME'] = 'LCD'
-			protocolArgs['ENCODING'] = 'bytes'
-			self.comm = I2CDevice(protocolArgs)
-
 	def _write_byte(self, byte):
-		self.comm.write_byte(byte)
-		self.comm.write_byte((byte | En))
+		self.comm.write_byte(self.address, byte)
+		self.comm.write_byte(self.address, (byte | En))
 		sleep(self.delay)
-		self.comm.write_byte((byte & ~En))
-		sleep(self.delay)
-
-	def _write_byte_old(self, byte):
-		print('old bytes: ', byte)
-		self.bus.write_byte(self.address, byte)
-		self.bus.write_byte(self.address, (byte | En))
-		sleep(self.delay)
-		self.bus.write_byte(self.address,(byte & ~En))
+		self.comm.write_byte(self.address, (byte & ~En))
 		sleep(self.delay)
 
 	def write(self, byte, mode=0):

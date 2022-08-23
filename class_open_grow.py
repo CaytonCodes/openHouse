@@ -2,6 +2,7 @@ import pytz
 from datetime import datetime, timezone
 from time import sleep
 import yaml
+from comms.class_i2c_manager import I2CManager
 import interface.class_interface as interface
 from sensors.class_sensor_manager import SensorManager
 
@@ -16,10 +17,12 @@ test_stats = {
 
 class OpenGrow:
   def __init__(self):
+    self.comms = {}
     self.build_config()
     self.prep_components()
 
   def prep_components(self):
+    self.prep_comms()
     if self.get_config('INTERFACE'):
       self.prep_interface()
     self.prep_sensors()
@@ -51,13 +54,19 @@ class OpenGrow:
     found = default if found is None else found
     return found
 
+  def prep_comms(self):
+    args = self.config.get('COMMS', {})
+    if args.get('I2C', False):
+      protocol_args = args.get('I2C_ARGS', {})
+      self.comms['I2C'] = I2CManager(protocol_args)
+
   def prep_interface(self):
-    self.interface = interface.InterfaceManager(self.get_config(['INTERFACE']))
+    self.interface = interface.InterfaceManager(self.get_config(['INTERFACE']), self.comms.get('I2C', None))
     self.log = self.interface.log
 
   def prep_sensors(self):
     sensorDict = self.get_config(['SENSORS'], [])
-    self.sensorManager = SensorManager(sensorDict)
+    self.sensorManager = SensorManager(sensorDict, self.comms)
 
   def stats_screen(self):
     stats_list = self.get_config(['STATS', 'STATS_SCREEN'], ['TIME'])

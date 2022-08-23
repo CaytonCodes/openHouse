@@ -3,8 +3,9 @@ import interface.lcd.class_lcd_manager as lcd_manager
 from interface.inputs.class_keyboard_watcher import KeyboardWatcher
 
 class InterfaceManager:
-  def __init__(self, config):
+  def __init__(self, config, comm):
     self.config = config
+    self.comm = comm
     self.prep_components()
 
   def prep_components(self):
@@ -14,7 +15,7 @@ class InterfaceManager:
 
   def prep_display(self):
     args = self.config.get('LCD', {})
-    self.display = lcd_manager.LcdManager(args)
+    self.display = lcd_manager.LcdManager(args, self.comm)
 
   def check_keyboard(self, complete = True, log = False):
     '''When complete is true, will return the response only after the breaker is hit. Otherwise will return response with running string. Response: {'val': '', 'complete': False}.'''

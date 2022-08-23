@@ -18,7 +18,7 @@ from comms.class_response import Response
 # DEFAULT_BLANK_READING = '-'
 PERIPHERAL_ADDRESS_CHANGE = 0x0703
 
-class I2CDevice:
+class I2CManager:
   def __init__(self, args, existingFile = None, existingBus = None):
     self.settings = {
       # 'DEVICE_NAME': '',
@@ -37,7 +37,7 @@ class I2CDevice:
     if existingFile:
       self.ioFile = existingFile
     else:
-      self.ioFile = io.open(file=f"/dev/i2c-{self.settings('I2C_BUS_NUM')}", mode="r+b", buffering=0)
+      self.ioFile = io.open(file=f"/dev/i2c-{self.settings.get('I2C_BUS_NUM', 1)}", mode="r+b", buffering=0)
     if existingBus:
       self.bus = existingBus
     else:
@@ -59,7 +59,8 @@ class I2CDevice:
     # this sets the peripheral address in the io file.
     fcntl.ioctl(self.ioFile, PERIPHERAL_ADDRESS_CHANGE, self.address)
 
-  def write(self, address, cmd, encoding = None, nullChar = None):
+  def write(self, response): # address, cmd, encoding = None, nullChar = None):
+
     if nullChar:
       cmd += nullChar
     if encoding in ['bytes', 'byte', 'hex', 'hexadecimal', None]:

@@ -4,29 +4,28 @@ from sensors.class_sensor_device import SensorDevice
 from _common_funcs import _settings_update, _error_builder
 
 class SensorManager:
-  def __init__(self, args):
+  def __init__(self, args, comms):
     self.sensors = {}
-    self.settings = {
-      'I2C_BUS_NUM': None,
-    }
+    self.settings = {}
     _settings_update(self.settings, args)
+    self.comms = comms
     self.prep_sensors()
 
   def prep_sensors(self):
     sensors = self.settings.get('SENSORS', {})
     for sensorName in sensors:
       sensorSettings = sensors.get(sensorName, {})
-      if self.settings.get('I2C_BUS_NUM', None) and sensorSettings.get('PROTOCOL', None) == 'I2C':
-        if not sensorSettings.get('PROTOCOL_ARGS', {}):
-          sensorSettings['PROTOCOL_ARGS'] = {}
-        sensorSettings['PROTOCOL_ARGS']['I2C_BUS_NUM'] = self.settings.get('I2C_BUS_NUM', None)
-      instance = self.prep_sensor(sensorName, sensorSettings)
+      comm = self.get_comm(sensorSettings.get('PROTOCOL', None))
+      instance = self.prep_sensor(sensorName, sensorSettings, comm)
       print('Sensor ' + sensorName + ' prepared.', instance)
       if instance:
         self.sensors[sensorName] = instance
 
-  def prep_sensor(self, sensorName, sensorSettings):
-      return SensorDevice(sensorName, sensorSettings)
+  def get_comm(self, commName):
+    return self.comms.get(commName, None)
+
+  def prep_sensor(self, sensorName, sensorSettings, comm):
+      return SensorDevice(sensorName, sensorSettings, comm)
 
   def get_sensor(self, sensorName):
     return self.sensors.get(sensorName, None)
