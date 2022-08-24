@@ -99,15 +99,17 @@ class SensorDevice:
     args['protocol']['type'] = self.settings.get('PROTOCOL', None)
     return Response(args)
 
-  def _write_command(self, cmd):
+  def _set_command(self, cmd, delay = None):
     unit = None
-    delay = None
-    if cmd == self.settings.get('COMMANDS', {}).get('READ', {}).get('CODE', 'wackyDefaultThatWouldNeverBeUsed9000'):
+    if cmd == self.settings.get('COMMANDS', {}).get('READ', {}).get('CODE', 'wackyDefaultThatWouldNeverBeUsed9001'):
       unit = self.settings.get('COMMANDS', {}).get('READ', {}).get('UNIT', '')
       delay = self.settings.get('COMMANDS', {}).get('READ', {}).get('DELAY', None)
+    self.response.recycle()
     self.response.set_cmd(cmd, unit, delay)
-    self.comm.write(self.response)
 
+  def _write_command(self, cmd, delay = None):
+    self._set_command(cmd, delay)
+    self.comm.write(self.response)
 
   # def _i2c_commands(self, commandName):
   #   if commandName in self.settings.get('COMMANDS', {}):
@@ -119,17 +121,34 @@ class SensorDevice:
   #     raise Exception(error_builder('Unknown command: ' + commandName, self.sensorName, None))
 
   def parallel_read(self):
-    return self.comm.parallel_read()
+    # dataOut = False
+    # timeNow = datetime.now()
+    # if self.lastReadCall and timeNow - self.lastReadCall < self.delay:
+    #   return False
+    # if self.lastReadCall:
+    #   self.response = self.comm.read(self.response)
+    #   dataOut = self.response.get_data()
+    # cmd = self.settings.get('COMMANDS', {}).get('READ', {}).get('CODE', '')
+    # self._write_command(cmd)
+    # self.lastReadCall = timeNow
+    # return dataOut
+    cmd = self.settings.get('COMMANDS', {}).get('READ', {}).get('CODE', '')
+    if self.response.inputCmd != cmd:
+      self._set_command(cmd)
+    return self.comm.parallel_read(self.response)
 
   def query(self, command, delay = None):
-    if self.settings.get('PROTOCOL', None) == 'I2C':
-      return self._i2c_query(command, delay)
-    else:
-      raise Exception(error_builder('Unknown protocol: ' + self.settings.get('PROTOCOL', 'Unknown', self.sensorName, None)))
+    self._set_command(command, delay)
+    return self.comm.query(self.response)
 
-  def _i2c_query(self, command, delay = None):
-    if not delay or delay < 0:
-      delay = self.delay
-    encoding = self.settings.get('PROTOCOL_ARGS', {}).get('ENCODING', DEFAULT_ENCODING)
-    nullChar = self.settings.get('PROTOCOL_ARGS', {}).get('NULL_CHAR', DEFAULT_NULL_CHAR)
-    return self.comm.query(self.address, command, delay, encoding, nullChar)
+  #   if self.settings.get('PROTOCOL', None) == 'I2C':
+  #     return self._i2c_query(command, delay)
+  #   else:
+  #     raise Exception(error_builder('Unknown protocol: ' + self.settings.get('PROTOCOL', 'Unknown', self.sensorName, None)))
+
+  # def _i2c_query(self, command, delay = None):
+  #   if not delay or delay < 0:
+  #     delay = self.delay
+  #   encoding = self.settings.get('PROTOCOL_ARGS', {}).get('ENCODING', DEFAULT_ENCODING)
+  #   nullChar = self.settings.get('PROTOCOL_ARGS', {}).get('NULL_CHAR', DEFAULT_NULL_CHAR)
+  #   return self.comm.query(self.address, command, delay, encoding, nullChar)

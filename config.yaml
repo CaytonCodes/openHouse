@@ -6,6 +6,7 @@ COMMS:
   I2C: true
   I2C_ARGS: {
     'I2C_BUS_NUM': 1,
+    'STD_DELAY': 1,
   }
 INTERFACE:
   LCD:
@@ -14,8 +15,7 @@ INTERFACE:
     TEXT_COLS: 2
     PROTOCOL: 'I2C'
     PROTOCOL_ARGS: {
-      'I2C_ADDR': 0x27,
-      'I2C_BUS_NUM': 1,
+      'I2C_ADDRESS': 0x27,
       'STD_DELAY': 0.01,
       'ENCODING': 'bytes',
     }
@@ -35,8 +35,7 @@ SENSORS:
     LCD:
       PROTOCOL: 'I2C'
       PROTOCOL_ARGS: {
-        'I2C_ADDR': 0x27,
-        'I2C_BUS_NUM': 1,
+        'I2C_ADDRESS': 0x27,
         'STD_DELAY': 0.01
       }
 DRIVERS:
