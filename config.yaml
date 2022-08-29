@@ -14,6 +14,7 @@ INTERFACE:
     ROWS: 4
     TEXT_COLS: 2
     PROTOCOL: 'I2C'
+    MODULE: 'PCF8574'
     PROTOCOL_ARGS: {
       'I2C_ADDRESS': 0x27,
       'STD_DELAY': 0.01,
@@ -31,13 +32,10 @@ SENSORS:
   SENSORS:
     PH1:
       PROTOCOL: 'I2C'
-      MODULE: 'atlasSciEZOPH'
-    LCD:
+      MODULE: 'AtlasSciEZOPH'
+    WTEMP:
       PROTOCOL: 'I2C'
-      PROTOCOL_ARGS: {
-        'I2C_ADDRESS': 0x27,
-        'STD_DELAY': 0.01
-      }
+      MODULE: 'MCP9600'
 DRIVERS:
   DRIVERS:
     UNKNOWN:

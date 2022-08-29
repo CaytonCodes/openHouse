@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+
 from time import sleep
-import interface.lcd.class_lcd_manager as lcd_manager
+from interface.display.class_display_device import DisplayDevice
+# import interface.lcd.class_lcd_manager as lcd_manager
 from interface.inputs.class_keyboard_watcher import KeyboardWatcher
 
 class InterfaceManager:
@@ -15,7 +18,8 @@ class InterfaceManager:
 
   def prep_display(self):
     args = self.config.get('LCD', {})
-    self.display = lcd_manager.LcdManager(args, self.comm)
+    # self.display = lcd_manager.LcdManager(args, self.comm)
+    self.display = DisplayDevice(args, self.comm)
 
   def check_keyboard(self, complete = True, log = False):
     '''When complete is true, will return the response only after the breaker is hit. Otherwise will return response with running string. Response: {'val': '', 'complete': False}.'''
@@ -27,16 +31,16 @@ class InterfaceManager:
       self.log('keyboard response: ' + response.get('val', None) + ': complete' if response.get('complete', None) else ': incomplete')
     return response
 
-  def get_input(self, prompt = '', options = [], default = None):
+  def get_input(self, prompt = '', options = [], default = None, skipDisplay = True):
     if options and not prompt.startswith('Invalid input.'):
       prompt = 'Options: ' + ', '.join(options) + '\n' + prompt
     try:
-      inputVal = self._input(prompt + ' ')
+      inputVal = self._input(prompt + ' ', skipDisplay)
     except KeyboardInterrupt:
       return 'exit'
     except:
       inputVal = 'except'
-    self.log('--input recieved: ' + inputVal, 0, True)
+    self.log('--input recieved: ' + inputVal, 0, True, skipDisplay)
     if inputVal == 'exit':
       return 'exit'
     if options:
@@ -49,9 +53,9 @@ class InterfaceManager:
     else:
       return inputVal
 
-  def _input(self, prompt = ''):
+  def _input(self, prompt = '', skipDisplay = False):
     prompt = '\n' + prompt if prompt else ''
-    self.log(prompt, 0, True)
+    self.log(prompt, 0, True, skipDisplay)
     waiting = True
     while waiting:
       response = self.check_keyboard()
@@ -74,10 +78,10 @@ class InterfaceManager:
     sleep(delay)
     return isComplete
 
-  def stats_log(self, stats, print = False):
+  def stats_log(self, stats, toPrint = False):
     if self.display:
       self.display.stats_log(stats)
-    if print:
+    if toPrint:
       print(str(stats))
 
   def lcd_clear(self):

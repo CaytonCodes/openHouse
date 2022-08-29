@@ -1,5 +1,6 @@
 from time import sleep
 from _common_funcs import _settings_update, _error_builder
+from comms.class_i2c_manager import I2CManager
 
 # commands
 LCD_CLEARDISPLAY = 0x01
@@ -64,7 +65,7 @@ LCD_NOBACKLIGHT = 0x00
 
 class LcdManager(object):
 
-	def __init__(self, args, comm):
+	def __init__(self, args, comm = None):
 		self.settings = {
 			'COLS': 20,
 			'ROWS': 4,
@@ -80,8 +81,9 @@ class LcdManager(object):
 		}
 		_settings_update(self.settings, args)
 		self.address = 0x27
+		if not comm:
+			comm = I2CManager()
 		self.comm = comm
-
 		self.delay = self.settings['PROTOCOL_ARGS']['STD_DELAY']
 		self.rows = self.settings['ROWS']
 		self.cols = self.settings['COLS']
@@ -176,7 +178,8 @@ class LcdManager(object):
 		labels = ''
 		vals = ''
 		count = 0
-		for statName, statVal in stats.items():
+		for statName in stats:
+			statVal = stats[statName]
 			count += 1
 			statName = self._stat_prepper(statName, textColWidth)
 			statVal = self._stat_prepper(statVal, textColWidth, True)

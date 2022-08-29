@@ -66,14 +66,14 @@ class OpenGrow:
 
   def prep_sensors(self):
     sensorDict = self.get_config(['SENSORS'], [])
-    self.sensorManager = SensorManager(sensorDict, self.comms)
+    self.sensorManager = SensorManager(sensorDict, self.comms, self.__dict__.get('log', None))
 
   def stats_screen(self):
     stats_list = self.get_config(['STATS', 'STATS_SCREEN'], ['TIME'])
-    stats_with_vals = []
+    stats_with_vals = {}
     for stat in stats_list:
-      stats_with_vals.append([stat, self.get_stat(stat)])
-    self.interface.stats_screen(stats_with_vals)
+      stats_with_vals[stat] = self.get_stat(stat)
+    self.interface.stats_log(stats_with_vals, True)
 
   def get_current_time(self):
     output_format = ('%I:%M %p') if self.get_config(['GENERAL', '12_HOUR_CLOCK']) else ('%H:%M')
@@ -84,25 +84,26 @@ class OpenGrow:
     stat_type = stat_details['TYPE']
     if stat_type == 'time':
       return self.get_current_time()
-    elif stat_type == 'temp':
-      return '75.0 F'
+    elif stat in self.sensorManager.get_sensor_names():
+      return self.read_sensor(stat, 'unitValue', 'N/A')
     else:
       return 'N/A'
 
-  def read_sensor(self, sensorName, returnType = 'unitValue', default = None, responseObject = None):
-    if not responseObject:
-      responseObject = self.sensorManager.parallel_read(sensorName)
-    if responseObject:
+  def read_sensor(self, sensorName, returnType = 'unitValue', default = None, responseData = None):
+    if not responseData:
+      responseData = self.sensorManager.parallel_read(sensorName)
+    print('Reading:', sensorName, responseData)
+    if responseData:
       if returnType == 'unitValue':
-        return responseObject.get_unit_value()
+        return str(responseData.get('data', default)) + ' ' + responseData.get('unit', default)
       elif returnType == 'raw':
-        return responseObject.get_data()
-      elif returnType == 'float' or returnType == 'int':
-        return responseObject.get_data(returnType)
-      elif returnType == 'response':
-        return responseObject
+        return responseData
+      elif returnType == 'float':
+        return float(responseData.get('data', default))
+      elif returnType == 'int':
+        return round(float(responseData.get('data', default)))
       else:
-        return responseObject.get_data('str')
+        return str(responseData.get('data', default))
     else:
       return default
 
@@ -126,29 +127,29 @@ class OpenGrow:
     device = None
     deviceTypeOptions = ['SENSORS', 'DRIVERS']
 
-    self.log('----ENTERING CHAT MODE----\nEnter exit or cntl + C to exit\n', 1, True)
+    self.log('----ENTERING CHAT MODE----\nEnter exit or cntl + C to exit\n', 1, True, True)
     deviceType = self.interface.get_input('Which type of device?', deviceTypeOptions)
     if deviceType == 'exit':
-      self.log(exitChatString, 2, True)
+      self.log(exitChatString, 2, True, True)
       return
     deviceOptions = self.get_config([deviceType, deviceType], [])
     deviceName = self.interface.get_input('Which device?', deviceOptions)
     if deviceName == 'exit':
-      self.log(exitChatString, 2, True)
+      self.log(exitChatString, 2, True, True)
       return
     if deviceType == 'SENSORS':
       device = self.sensorManager.get_sensor(deviceName)
     elif deviceType == 'DRIVERS':
       # device = self.driverManager.get_driver(deviceName)
-      self.log('drivers not yet implemented', 1, True)
+      self.log('drivers not yet implemented', 1, True, True)
     if not device:
-      self.log('Device not found, try again.', 1, True)
+      self.log('Device not found, try again.', 1, True, True)
       return self.device_chat()
-    self.log('Prepare to enter chat type. CAL chat accepts commands then shows readings of sensor and only sends command when you press enter.', 2, True)
+    self.log('Prepare to enter chat type. CAL chat accepts commands then shows readings of sensor and only sends command when you press enter.', 2, True, True)
     chatType = self.interface.get_input('What is the chat type?', ['GENERAL', 'CAL'])
     chatPrompt = 'In cal chat, you will see readings and select when to send command.\n' if chatType == 'CAL' else ''
     chatPrompt += 'Enter a command to send to the device.'
-    self.log('Entering chat mode. Type "exit" to exit.', 2, True)
+    self.log('Entering chat mode. Type "exit" to exit.', 2, True, True)
     chatting = True
     while chatting:
       command = self.interface.get_input(chatPrompt)
@@ -156,46 +157,39 @@ class OpenGrow:
         chatting = False
       else:
         if chatType == 'CAL':
-          self.log('Reading sensor. Press enter to send command.', 1, True)
+          self.log('Reading sensor. Press enter to send command.', 1, True, True)
           waitingToSend = True
           while waitingToSend:
             sleep(1)
             reading = self.read_sensor(deviceName, 'unitValue')
-            self.log('Reading: ' + reading, 0, True)
+            if reading:
+              self.log('Reading: ' + reading, 0, True, True)
             if self.check_keyboard_enter():
               waitingToSend = False
-        self.log('Sending command: ' + command + ' to device: ' + deviceName, 1, True)
-        responseObject = self.sensorManager.sensor_query(deviceName, command)
-        if responseObject:
-          response = self.read_sensor(deviceName, 'response', b'', responseObject)
-          self.log('Device Response: ' + response.get_data('str'), 2, True)
+        self.log('Sending command: ' + command + ' to device: ' + deviceName, 1, True, True)
+        responseData = self.sensorManager.sensor_query(deviceName, command)
+        if responseData:
+          response = self.read_sensor(deviceName, 'raw', b'', responseData)
+          self.log('Device Response: ' + str(response), 2, True, True)
         else:
-          self.log('Device Response: N/A', 2, True)
-    self.log(exitChatString, 2, True)
+          self.log('Device Response: N/A', 2, True, True)
+    self.log(exitChatString, 2, True, True)
     return
 
 
   def run(self):
     try:
       while True:
-        self.log("Looping", 1, True, True)
-
-        self.log('Hello World. I\'m entering a longer text to see what will happen. Keep your fingers crossed.', 2)
-        # self.log('', 3)
-        # self.interface.stats_log(test_stats)
-
-        # self.sensorManager.sensors['LCD'].sensor.write_bytes(0x01)
-        # self.log('help', 2)
-        self.interface.lcd_cycle_message()
-        sleep(2)
+        self.log("Looping", 1, True)
+        # print(self.sensorManager.parallel_read_all())
+        self.stats_screen()
 
         keyboardCheck = self.check_keyboard()
         if keyboardCheck:
           if not self.log(None, 2, False):
             self.log('Keyboard input: ' + keyboardCheck, 1, True, True)
-        if self.check_keyboard() == 'chat':
+        if keyboardCheck == 'chat':
           self.device_chat()
-        # sleep(5)
     except KeyboardInterrupt:
         # If there is a KeyboardInterrupt (when you press ctrl+c), exit the program and cleanup
         self.log("Cleaning up!", 1, True, True)
