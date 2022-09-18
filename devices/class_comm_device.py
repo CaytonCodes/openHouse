@@ -175,6 +175,7 @@ class CommDevice:
       if self.noReadCount > self.settings.get('MAX_READ_ATTEMPTS', DEFAULT_MAX_READ_ATTEMPTS):
         self.response.set_data(self.settings.get('BLANK_READING', '-'), 0, 'data')
         dataOut = self.response.get_data()
+        print('No data count reached for device: %s' % self.deviceName)
     # Handle blank reading
     elif dataOut.get('data') == self.settings.get('BLANK_READING', '-'):
       self.noReadCount += 1
@@ -206,7 +207,7 @@ class CommDevice:
     if not data:
       return False
     if data.get('data', '') in self.settings.get('ERROR_READINGS', []):
-      data['data'] = self.settings.get('BLANK_READING', '-')
+      data.set('data', self.settings.get('BLANK_READING', '-'))
     return data
 
 

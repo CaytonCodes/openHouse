@@ -2,9 +2,19 @@ GENERAL:
   # Use tz name for timezone, see list here: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
   TIMEZONE: 'America/Denver'
   12_HOUR_CLOCK: true
+  STATS:
+    TIME:
+      TYPE: 'time'
+    WTEMP:
+      TYPE: 'sensor'
+      SENSOR: 'WTEMP'
+    PH1:
+      TYPE: 'sensor'
+      SENSOR: 'PH1'
 COMMS:
   I2C: true
   I2C_ARGS: {
+    # TODO: Update this to not be an object but yaml.
     'I2C_BUS_NUM': 1,
     'STD_DELAY': 1,
   }
@@ -15,18 +25,6 @@ INTERFACE:
     TEXT_COLS: 2
     PROTOCOL: 'I2C'
     MODULE: 'PCF8574'
-    PROTOCOL_ARGS: {
-      'I2C_ADDRESS': 0x27,
-      'STD_DELAY': 0.01,
-      'ENCODING': 'bytes',
-    }
-STATS:
-  STATS_SCREEN: ['TIME', 'WTEMP', 'PH1', 'EC']
-  STATS:
-    TIME:
-      TYPE: 'time'
-    WTEMP:
-      TYPE: 'temp'
 SENSORS:
   I2C_BUS_NUM: 1
   SENSORS:

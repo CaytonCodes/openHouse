@@ -1,6 +1,7 @@
 from time import sleep
+from datetime import datetime
 from _common_funcs import _settings_update, _error_builder
-from comms.class_i2c_manager import I2CManager
+from devices.class_comm_device import I2CDevice
 
 # commands
 LCD_CLEARDISPLAY = 0x01
@@ -63,35 +64,25 @@ LINES = {
 LCD_BACKLIGHT = 0x08
 LCD_NOBACKLIGHT = 0x00
 
-class PCF8574(object):
-
-	def __init__(self, args, deviceName = '', comm = None):
-		self.settings = {
+class PCF8574(I2CDevice):
+	def __init__(self, args, deviceName = 'I2C LCD', commManager = None):
+		super().__init__(args, deviceName, commManager)
+		tempSettings = {
 			'COLS': 20,
 			'ROWS': 4,
 			'TEXT_COLS': 1,
 			'BACKLIGHT': True,
 			'PROTOCOL': 'I2C',
-			'PROTOCOL_ARGS': {
-				'I2C_ADDR': 0x27,
-				'I2C_BUS_NUM': 1,
-				'STD_DELAY': 0.0005,
-				'ENCODING': 'bytes',
-			}
+			'I2C_ADDRESS': 0x27,
+			'I2C_BUS_NUM': 1,
+			'DELAY': 0.0005,
 		}
-		_settings_update(self.settings, args)
-		self.name = deviceName
-		self.address = 0x27
-		if not comm:
-			comm = I2CManager()
-		self.comm = comm
-		self.delay = self.settings['PROTOCOL_ARGS']['STD_DELAY']
-		self.rows = self.settings['ROWS']
-		self.cols = self.settings['COLS']
-
-		# self._setup_comms()
-
-		self.backlight_status = self.settings['BACKLIGHT']
+		self.sub_settings_defaults(tempSettings)
+		self.address = self.settings.get('I2C_ADDRESS', 0x27)
+		self.delay = self.settings.get('DELAY', 0.0005)
+		self.rows = self.settings.get('ROWS', 4)
+		self.cols = self.settings.get('COLS', 20)
+		self.backlight_status = self.settings.get('BACKLIGHT', True)
 		self.message = ''
 		self.messageRemainder = ''
 		self.holdScreen = False
@@ -105,11 +96,11 @@ class PCF8574(object):
 		sleep(self.delay)
 
 	def _write_byte(self, byte):
-		self.comm.write_byte(self.address, byte)
-		self.comm.write_byte(self.address, (byte | En))
-		sleep(self.delay)
-		self.comm.write_byte(self.address, (byte & ~En))
-		sleep(self.delay)
+		self.commManager.write_byte(self.address, byte)
+		self.commManager.write_byte(self.address, (byte | En))
+		# sleep(self.delay)
+		self.commManager.write_byte(self.address, (byte & ~En))
+		# sleep(self.delay)
 
 	def write(self, byte, mode=0):
 		backlight_mode = LCD_BACKLIGHT if self.backlight_status else LCD_NOBACKLIGHT
@@ -160,6 +151,26 @@ class PCF8574(object):
 		self.backlight_status = not self.backlight_status
 		self.write(0)
 
+	def wake(self):
+		self.backlight(True)
+
+	def sleep(self):
+		self.backlight(False)
+
+	def parallel_alert(self, period = 1, clear = False, text = None):
+		if not self.alert:
+			# First Call.
+			self.alert = datetime.now()
+		if clear:
+			self.alert = None
+			self.backlight(True)
+			return
+		if self.alert + timedelta(seconds = period) < datetime.now():
+			self.alert = datetime.now()
+			self.backlight_toggle()
+		if text:
+			self.parallel_log(text)
+
 	def get_text_line(self, text, noStrip = False):
 		line_break = self.cols
 		if len(text) > self.cols:
@@ -170,7 +181,7 @@ class PCF8574(object):
 		return text[:line_break], excess
 
 	def stats_log(self, stats):
-		# Stats is a dictionary of stats to be displayed of format {statName: Value}.
+		# Stats is a dictionary of stats to be displayed of format {statName: {data, unit}}.
 		if self.holdScreen:
 			return
 		cols = self.cols
@@ -197,6 +208,8 @@ class PCF8574(object):
 		self.parallel_log()
 
 	def _stat_prepper(self, stat, textColWidth, isVal = False):
+		if isVal:
+			stat = str(stat['data']) + ' ' + stat['unit']
 		offset = 0 if isVal else 1
 		stat = stat.strip()
 		if len(stat) > textColWidth - offset:

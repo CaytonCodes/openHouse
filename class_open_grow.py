@@ -1,24 +1,34 @@
-import pytz
-from datetime import datetime, timezone
+
+from datetime import datetime
 from time import sleep
 import yaml
 from comms.class_i2c_manager import I2CManager
 import interface.class_interface as interface
 from sensors.class_sensor_manager import SensorManager
-
-test_stats = {
-  'WTemp': '65.0 F',
-  'pH': '6.00',
-  'EC': '1000 ppm',
-  'RH': '50%',
-  'ATemp': '75.0 F',
-  # 'ReallyLongName': 'This is a really long name to test the wrapping of the log output.',
-}
+from _common_funcs import _settings_update
 
 class OpenGrow:
   def __init__(self):
+    self.settings = {
+      'GENERAL': {
+        'TIMEZONE': 'UTC',
+        '12_HOUR_CLOCK': True,
+        'AWAKE_PERIOD': 60,
+        'SLEEP_PERIOD': 60,
+        'STATS_LOOP_LIMIT': 1000,
+        'STATS': {
+          'TIME': { 'type': 'time'},
+        },
+      },
+      'SENSORS': {},
+      'COMMS': {},
+      'INTERFACE': {},
+      'DRIVERS': {},
+    }
     self.comms = {}
     self.build_config()
+    _settings_update(self.settings, self.config)
+    print(self.settings)
     self.prep_components()
 
   def prep_components(self):
@@ -65,62 +75,29 @@ class OpenGrow:
     self.log = self.interface.log
 
   def prep_sensors(self):
+    timezone = self.get_config(['GENERAL', 'TIMEZONE'], 'UTC')
+    _12hr = self.get_config(['GENERAL', '12_HOUR_CLOCK'], True)
     sensorDict = self.get_config(['SENSORS'], [])
-    self.sensorManager = SensorManager(sensorDict, self.comms, self.__dict__.get('log', None))
+    self.sensorManager = SensorManager(sensorDict, self.comms, timezone, _12hr)
 
   def stats_screen(self):
-    stats_list = self.get_config(['STATS', 'STATS_SCREEN'], ['TIME'])
-    stats_with_vals = {}
-    for stat in stats_list:
-      stats_with_vals[stat] = self.get_stat(stat)
+    statsDict = self.settings.get('GENERAL', {}).get('STATS', {})
+    stats_with_vals = self.sensorManager.get_stats(statsDict)
     self.interface.stats_log(stats_with_vals, True)
 
-  def get_current_time(self):
-    output_format = ('%I:%M %p') if self.get_config(['GENERAL', '12_HOUR_CLOCK']) else ('%H:%M')
-    return datetime.now(timezone.utc).astimezone(pytz.timezone(self.get_config(['GENERAL', 'TIMEZONE']) or 'UTC')).strftime(output_format)
-
-  def get_stat(self, stat):
-    stat_details = self.get_config(['STATS', 'STATS', stat], {'TYPE': None})
-    stat_type = stat_details['TYPE']
-    if stat_type == 'time':
-      return self.get_current_time()
-    elif stat in self.sensorManager.get_sensor_names():
-      return self.read_sensor(stat, 'unitValue', 'N/A')
-    else:
-      return 'N/A'
-
-  def read_sensor(self, sensorName, returnType = 'unitValue', default = None, responseData = None):
-    if not responseData:
-      responseData = self.sensorManager.parallel_read(sensorName)
-    print('Reading:', sensorName, responseData)
-    if responseData:
-      if returnType == 'unitValue':
-        return str(responseData.get('data', default)) + ' ' + responseData.get('unit', default)
-      elif returnType == 'raw':
-        return responseData
-      elif returnType == 'float':
-        return float(responseData.get('data', default))
-      elif returnType == 'int':
-        return round(float(responseData.get('data', default)))
-      else:
-        return str(responseData.get('data', default))
-    else:
-      return default
-
-  def check_keyboard(self):
+  def check_keyboard(self, enter = False):
     response = self.interface.check_keyboard(True, False)
+    if enter:
+      return ( response or response == '' )
     if response:
       keyboardInput = response.get('val', None)
       return keyboardInput
     else:
       return None
 
-  def check_keyboard_enter(self):
-    keyEvent = False
-    response = self.check_keyboard()
-    if response or response == '':
-      keyEvent = True
-    return keyEvent
+  # def check_keyboard_enter(self):
+  #   response = self.check_keyboard()
+  #   return ( response or response == '' )
 
   def device_chat(self):
     exitChatString = '----EXITING CHAT MODE----\n'
@@ -164,7 +141,7 @@ class OpenGrow:
             reading = self.read_sensor(deviceName, 'unitValue')
             if reading:
               self.log('Reading: ' + reading, 0, True, True)
-            if self.check_keyboard_enter():
+            if self.check_keyboard(True):
               waitingToSend = False
         self.log('Sending command: ' + command + ' to device: ' + deviceName, 1, True, True)
         responseData = self.sensorManager.sensor_query(deviceName, command)
@@ -180,9 +157,10 @@ class OpenGrow:
   def run(self):
     try:
       while True:
-        self.log("Looping", 1, True)
+        # self.log("Looping", 1, True)
         # print(self.sensorManager.parallel_read_all())
         self.stats_screen()
+        sleep(1)
 
         keyboardCheck = self.check_keyboard()
         if keyboardCheck:

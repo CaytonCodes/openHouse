@@ -2,6 +2,8 @@ from devices.class_device import Device
 
 class DisplayDevice(Device):
 	def __init__(self, args, commManager = None):
+		if 'PROTOCOL_ARGS' not in args.keys():
+			args['PROTOCOL_ARGS'] = {}
 		for arg in args:
 			if arg != 'PROTOCOL_ARGS':
 				args['PROTOCOL_ARGS'][arg] = args[arg]

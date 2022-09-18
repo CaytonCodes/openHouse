@@ -1,4 +1,24 @@
 #!/usr/bin/python
+class DataOut:
+  deviceName: str = None
+  data: str = None
+  unit: str = None
+  statusCode: int = None
+  responseType: str = None
+  cmd: str = None
+
+  def __init__(self, args):
+    for k in args:
+      setattr(self, k, args[k])
+
+  def __str__(self):
+    return str(self.__dict__)
+
+  def set(self, key, value):
+    setattr(self, key, value)
+
+  def get(self, key, default = None):
+    return getattr(self, key, default)
 
 class Response:
   deviceName: str = None
@@ -12,6 +32,10 @@ class Response:
   def __init__(self, args):
     self.set_args(args)
 
+  def set_args(self, args):
+    for k in args:
+      setattr(self, k, args[k])
+
   def recycle(self, args = None):
     self.data = None
     self.statusCode = None
@@ -19,10 +43,6 @@ class Response:
     if args:
       self.set_args(args)
     return self
-
-  def set_args(self, args):
-    for k in args:
-      setattr(self, k, args[k])
 
   def get_data(self):
     dataOut = {
@@ -33,7 +53,7 @@ class Response:
       'unit': self.unit,
       'cmd': self.inputCmd
     }
-    return dataOut
+    return DataOut(dataOut)
 
   def set_cmd(self, cmd, unit = None, delay = None):
     if unit:
