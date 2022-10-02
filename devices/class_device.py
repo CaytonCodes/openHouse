@@ -43,3 +43,9 @@ class Device:
 class SensorDevice(Device):
   def __init__(self, args = {}, deviceName = '', deviceType = 'SENSOR', commManager = None):
     super().__init__(args, deviceName, deviceType, commManager)
+
+  def wake_up(self):
+    return False
+
+  def go_to_sleep(self):
+    return False

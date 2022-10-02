@@ -13,8 +13,9 @@ class OpenGrow:
       'GENERAL': {
         'TIMEZONE': 'UTC',
         '12_HOUR_CLOCK': True,
-        'AWAKE_PERIOD': 60,
-        'SLEEP_PERIOD': 60,
+        'AWAKE_PERIOD': 10,
+        'AWAKE_LENGTH_MINUTES': 5,
+        'SLEEP_PERIOD': 300,
         'STATS_LOOP_LIMIT': 1000,
         'STATS': {
           'TIME': { 'type': 'time'},
@@ -30,6 +31,12 @@ class OpenGrow:
     _settings_update(self.settings, self.config)
     print(self.settings)
     self.prep_components()
+    self.tasks = []
+    self.awakePeriod = self.settings.get('GENERAL', {}).get('AWAKE_PERIOD', 10)
+    self.awakeLength = self.settings.get('GENERAL', {}).get('AWAKE_LENGTH_MINUTES', 5) * 60
+    self.sleepPeriod = self.settings.get('GENERAL', {}).get('SLEEP_PERIOD', 60)
+    self.currentPeriod = self.awakePeriod
+    self.add_task(self.wake_up, 0)
 
   def prep_components(self):
     self.prep_comms()
@@ -79,6 +86,35 @@ class OpenGrow:
     _12hr = self.get_config(['GENERAL', '12_HOUR_CLOCK'], True)
     sensorDict = self.get_config(['SENSORS'], [])
     self.sensorManager = SensorManager(sensorDict, self.comms, timezone, _12hr)
+
+  def do_tasks(self):
+    now = datetime.now()
+    for task in self.tasks:
+      if task.get('startTime', None) <= now:
+        task.get('task')()
+        self.tasks.remove(task)
+
+  def add_task(self, task, delay):
+    now = datetime.now()
+    startTime = now + timedelta(seconds=delay)
+    self.tasks.append({
+      'task': task,
+      'startTime': startTime,
+    })
+
+  def wake_up(self):
+    self.log("Waking up!", 1, True, True)
+    self.currentPeriod = self.awakeLength
+    self.interface.lcd_clear()
+    self.interface.lcd_backlight(True)
+    self.sensorManager.wake_up()
+    self.add_task(self.go_to_sleep, self.awakeLength)
+
+  def go_to_sleep(self):
+    self.log("Going to sleep!", 1, True, True)
+    self.currentPeriod = self.sleepPeriod
+    self.interface.lcd_backlight(False)
+    self.sensorManager.go_to_sleep()
 
   def stats_screen(self):
     statsDict = self.settings.get('GENERAL', {}).get('STATS', {})
@@ -153,14 +189,17 @@ class OpenGrow:
     self.log(exitChatString, 2, True, True)
     return
 
+  def loop_action(self):
+    self.stats_screen()
+    self.do_tasks()
 
   def run(self):
     try:
       while True:
         # self.log("Looping", 1, True)
         # print(self.sensorManager.parallel_read_all())
-        self.stats_screen()
-        sleep(1)
+        self.loop_action()
+        sleep(self.currentPeriod)
 
         keyboardCheck = self.check_keyboard()
         if keyboardCheck:

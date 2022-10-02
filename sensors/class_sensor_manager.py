@@ -44,6 +44,14 @@ class SensorManager:
     output_format = ('%I:%M %p') if self._12hr else ('%H:%M')
     return datetime.now(timezone.utc).astimezone(pytz.timezone(self.timezone)).strftime(output_format)
 
+  def wake_up(self):
+    for sensorName in self.sensors:
+      self.sensors[sensorName].wake_up()
+
+  def go_to_sleep(self):
+    for sensorName in self.sensors:
+      self.sensors[sensorName].sleep()
+
   def get_comm(self, commName):
     return self.comms.get(commName, None)
 
