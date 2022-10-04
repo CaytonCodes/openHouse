@@ -192,6 +192,7 @@ class OpenGrow:
   def loop_action(self):
     self.stats_screen()
     self.do_tasks()
+    sleep(self.currentPeriod)
 
   def run(self):
     try:
@@ -199,7 +200,6 @@ class OpenGrow:
         # self.log("Looping", 1, True)
         # print(self.sensorManager.parallel_read_all())
         self.loop_action()
-        sleep(self.currentPeriod)
 
         keyboardCheck = self.check_keyboard()
         if keyboardCheck:
