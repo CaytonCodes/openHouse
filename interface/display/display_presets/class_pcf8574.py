@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from time import sleep
 from datetime import datetime
 from _common_funcs import _settings_update, _error_builder
@@ -131,12 +133,15 @@ class PCF8574(I2CDevice):
 			if self.messageRemainder and self.messageRemainder.strip():
 				self.messageRemainder = self._newText(self.messageRemainder, 1, noStrip = isStats)
 				return False
-			else:
+			elif not isStats:
 				# We've cycled through the message.
 				self.message = ''
 				self.messageRemainder = ''
 				self.holdScreen = False
 				return True
+			else:
+				# We're in stats mode, so we'll just keep the message on the screen.
+				return False
 		else:
 			self.message = text
 			self.messageRemainder = self._newText(self.message, 1, noStrip = isStats)
@@ -220,4 +225,7 @@ class PCF8574(I2CDevice):
 		return stat
 
 	def clear(self):
+		self.message = ''
+		self.messageRemainder = ''
+		self.holdScreen = False
 		self.write(LCD_CLEARDISPLAY)

@@ -1,10 +1,12 @@
+#!/usr/bin/env python
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 import yaml
 from comms.class_i2c_manager import I2CManager
 import interface.class_interface as interface
 from sensors.class_sensor_manager import SensorManager
+from devices.drivers.drivers_cheat import driver_control
 from _common_funcs import _settings_update
 
 class OpenGrow:
@@ -104,10 +106,11 @@ class OpenGrow:
 
   def wake_up(self):
     self.log("Waking up!", 1, True, True)
-    self.currentPeriod = self.awakeLength
+    self.currentPeriod = self.awakePeriod
     self.interface.lcd_clear()
     self.interface.lcd_backlight(True)
     self.sensorManager.wake_up()
+    self.stats_screen()
     self.add_task(self.go_to_sleep, self.awakeLength)
 
   def go_to_sleep(self):
@@ -145,7 +148,7 @@ class OpenGrow:
     if deviceType == 'exit':
       self.log(exitChatString, 2, True, True)
       return
-    deviceOptions = self.get_config([deviceType, deviceType], [])
+    deviceOptions = self.get_config([deviceType, deviceType], ['any'])
     deviceName = self.interface.get_input('Which device?', deviceOptions)
     if deviceName == 'exit':
       self.log(exitChatString, 2, True, True)
@@ -154,7 +157,7 @@ class OpenGrow:
       device = self.sensorManager.get_sensor(deviceName)
     elif deviceType == 'DRIVERS':
       # device = self.driverManager.get_driver(deviceName)
-      self.log('drivers not yet implemented', 1, True, True)
+      return driver_control(self.interface)
     if not device:
       self.log('Device not found, try again.', 1, True, True)
       return self.device_chat()
@@ -174,7 +177,7 @@ class OpenGrow:
           waitingToSend = True
           while waitingToSend:
             sleep(1)
-            reading = self.read_sensor(deviceName, 'unitValue')
+            reading = self.sensorManager.read_sensor(deviceName, 'unitValue')
             if reading:
               self.log('Reading: ' + reading, 0, True, True)
             if self.check_keyboard(True):
@@ -182,7 +185,7 @@ class OpenGrow:
         self.log('Sending command: ' + command + ' to device: ' + deviceName, 1, True, True)
         responseData = self.sensorManager.sensor_query(deviceName, command)
         if responseData:
-          response = self.read_sensor(deviceName, 'raw', b'', responseData)
+          response = self.sensorManager.read_sensor(deviceName, 'raw', b'', responseData)
           self.log('Device Response: ' + str(response), 2, True, True)
         else:
           self.log('Device Response: N/A', 2, True, True)
@@ -199,6 +202,8 @@ class OpenGrow:
       while True:
         # self.log("Looping", 1, True)
         # print(self.sensorManager.parallel_read_all())
+        # self.device_chat()
+        driver_control(self.interface)
         self.loop_action()
 
         keyboardCheck = self.check_keyboard()

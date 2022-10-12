@@ -50,7 +50,7 @@ class SensorManager:
 
   def go_to_sleep(self):
     for sensorName in self.sensors:
-      self.sensors[sensorName].sleep()
+      self.sensors[sensorName].go_to_sleep()
 
   def get_comm(self, commName):
     return self.comms.get(commName, None)

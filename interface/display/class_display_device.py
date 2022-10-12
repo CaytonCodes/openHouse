@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from devices.class_device import Device
 
 class DisplayDevice(Device):
@@ -21,3 +23,18 @@ class DisplayDevice(Device):
 
 	def clear(self):
 		self.comm.clear()
+
+	def backlight(self, on):
+		self.comm.backlight(on)
+
+	def backlight_toggle(self):
+		self.comm.backlight_toggle()
+
+	def wake(self):
+		self.comm.wake()
+
+	def sleep(self):
+		self.comm.sleep()
+
+	def parallel_alert(self, period = 1, clear = False, text = None):
+		self.comm.parallel_alert(period, clear, text)

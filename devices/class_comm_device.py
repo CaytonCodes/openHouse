@@ -38,6 +38,7 @@ class CommDevice:
     self.delay = self.settings.get('DELAY', DEFAULT_DELAY)
     self.readCmd = self.settings.get('COMMANDS', {}).get('READ', {}).get('CMD', '')
     self.readDelay = self.settings.get('COMMANDS', {}).get('READ', {}).get('DELAY', self.delay)
+    print('CommDevice: ' + self.deviceName + ' settings: ' + str(self.settings))
 
   def sub_settings_defaults(self, subDefualts):
     for setting in subDefualts:
